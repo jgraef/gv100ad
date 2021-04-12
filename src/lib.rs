@@ -1,5 +1,5 @@
 ///
-/// Parser for GV100 files from the Statistisches Bundesamt, containing data about German Laender, Kreise, Gemeinden, etc.
+/// Parser for GV100AD files from the Statistisches Bundesamt, containing data about German Laender, Kreise, Gemeinden, etc.
 ///
 /// Download data files from: https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/_inhalt.html
 ///
@@ -81,7 +81,7 @@ impl<'a> FieldReader<'a> {
     }
 }
 
-/// Parser for GV100 files.
+/// Parser for GV100AD files.
 pub struct Parser<R> {
     reader: R,
 }
@@ -356,7 +356,7 @@ pub fn parse_date(s: &str) -> Result<NaiveDate, ParseIntError> {
     Ok(NaiveDate::from_ymd(s[0..4].parse()?, s[4..6].parse()?, s[6..8].parse()?))
 }
 
-/// A GV100 record (Datensatz).
+/// A GV100AD record (Datensatz).
 #[derive(Clone, Debug)]
 pub enum Record {
     Land(Land),
@@ -723,7 +723,7 @@ pub struct Gerichtbarkeit {
     amtsgericht: u8,
 }
 
-/// A (in-memory) database that stores GV100 data for querying.
+/// A (in-memory) database that stores GV100AD data for querying.
 pub struct Database {
     /// Laender
     laender: BTreeMap<Ags, Land>,
@@ -750,12 +750,12 @@ impl Database {
         Self::from_parser(Parser::new(reader))
     }
 
-    /// Create database from GV100 file at `path`.
+    /// Create database from GV100AD file at `path`.
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         Self::from_parser(Parser::from_path(path)?)
     }
 
-    /// Create database from GV100 parser.
+    /// Create database from GV100AD parser.
     pub fn from_parser<R: BufRead>(mut parser: Parser<R>) -> Result<Self, Error> {
         let mut laender = BTreeMap::new();
         let mut regierungsbezirke = BTreeMap::new();
