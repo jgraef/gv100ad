@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Janosch Gräf <janosch.graef@gmail.com>"]
 edition = "2018"
 description = "Parser to read GV100AD files from the Statistisches Bundesamt Germany"
+license = "MIT"
+
+[badges]
+maintenance = { status = "experimental" }
 
 [dependencies]
 chrono = "0.4"

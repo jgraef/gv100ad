@@ -1,4 +1,7 @@
-# GV100AD parser
+[![Crates.io](https://img.shields.io/crates/v/gv100ad.svg)](https://crates.io/crates/gv100ad)
+![Maintenance](https://img.shields.io/badge/maintenance-experimental-blue.svg)
+
+# gv100ad
 
 **This software is experimental and might change a lot in future**
 
@@ -34,3 +37,12 @@ fn main() {
     }
 }
 ```
+
+## TODO
+
+ - Implement Textkennzeichen correctly.
+
+
+## License
+
+Licensed under MIT license ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)
