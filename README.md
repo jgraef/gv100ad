@@ -45,4 +45,4 @@ fn main() {
 
 ## License
 
-Licensed under MIT license ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)
+Licensed under MIT license ([LICENSE](LICENSE) or https://opensource.org/licenses/MIT)
