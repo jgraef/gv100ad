@@ -12,7 +12,10 @@ fn main() {
         println!("  {}:", kreis.name);
 
         for gemeinde in db.iter_gemeinden_in(&kreis.ags) {
-            println!("    {}: {} residents", gemeinde.name, gemeinde.population_total);
+            println!(
+                "    {}: {} residents",
+                gemeinde.name, gemeinde.population_total
+            );
         }
     }
 }

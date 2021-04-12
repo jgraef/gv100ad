@@ -1,16 +1,20 @@
 //! **This software is experimental and might change a lot in future**
 //!
-//! This is a Rust implementation of a parser for GV100AD data sets. These data sets contain information about the structure, population, area of german municipalities.
+//! This is a Rust implementation of a parser for GV100AD data sets. These data
+//! sets contain information about the structure, population, area of german
+//! municipalities.
 //!
 //! The data sets can be obtained at: https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/_inhalt.html
 //!
 //! The parser was tested with this data set: https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GV100ADQ/GV100AD3004.html
 //!
-//! The ZIP files contain a text file `GV100AD_DDMMYY.txt` that contains the data set, and a PDF file describing the format.
+//! The ZIP files contain a text file `GV100AD_DDMMYY.txt` that contains the
+//! data set, and a PDF file describing the format.
 //!
 //! # Example
 //!
-//! This example lists all municipalities of the state *Saarland* with population:
+//! This example lists all municipalities of the state *Saarland* with
+//! population:
 //!
 //! ```rust
 //! use gv100ad::{Ags, Database};
@@ -36,7 +40,6 @@
 //! # TODO
 //!
 //!  - Implement Textkennzeichen correctly.
-//!
 
 use std::{
     collections::BTreeMap,
@@ -71,25 +74,29 @@ pub enum Error {
     InvalidTextkennzeichen(u8),
 }
 
-/// Reader to read fields from a single data record (i.e. line). Specifically this makes sure that data is read correctly as UTF-8.
+/// Reader to read fields from a single data record (i.e. line). Specifically
+/// this makes sure that data is read correctly as UTF-8.
 pub struct FieldReader<'a> {
-    it: Chars<'a>,
+    chars: Chars<'a>,
 }
 
 impl<'a> FieldReader<'a> {
-    /// Creates a new field reader from a single line. It expects the line to not contain any line terminator.
-    pub fn new(buf: &'a str) -> Self {
-        FieldReader { it: buf.chars() }
+    /// Creates a new field reader from a single line. It expects the line to
+    /// not contain any line terminator.
+    pub fn new(line: &'a str) -> Self {
+        FieldReader {
+            chars: line.chars(),
+        }
     }
 
     /// Reads a field of length `n` as string. `n` is in characters, not bytes.
     pub fn next(&mut self, n: usize) -> &str {
-        let s = self.it.as_str();
+        let s = self.chars.as_str();
 
         // Count how many bytes need to be read, to read `n` UTF-8 characters.
         let mut nb = 0;
         for _ in 0..n {
-            if let Some(c) = self.it.next() {
+            if let Some(c) = self.chars.next() {
                 nb += c.len_utf8();
             } else {
                 break;
@@ -107,7 +114,7 @@ impl<'a> FieldReader<'a> {
     /// Skips `n` characters.
     pub fn skip(&mut self, n: usize) {
         for _ in 0..n {
-            self.it.next();
+            self.chars.next();
         }
     }
 }
@@ -141,8 +148,9 @@ impl<R: BufRead> Parser<R> {
 
     /// Parses the next data record (i.e. line).
     ///
-    /// Returns `Ok(None)` if end of file is reached. Returns `Err(_)`, if an error occured, otherwise returns `Ok(Some(_))`, if a
-    /// record was successfully read.
+    /// Returns `Ok(None)` if end of file is reached. Returns `Err(_)`, if an
+    /// error occured, otherwise returns `Ok(Some(_))`, if a record was
+    /// successfully read.
     pub fn parse_line(&mut self) -> Result<Option<Record>, Error> {
         let mut buf = String::new();
 
@@ -382,9 +390,14 @@ impl<R: BufRead> Parser<R> {
     }
 }
 
-/// Parses date from a field. This is just year, month, day without any seperators. German timezones apply.
+/// Parses date from a field. This is just year, month, day without any
+/// seperators. German timezones apply.
 pub fn parse_date(s: &str) -> Result<NaiveDate, ParseIntError> {
-    Ok(NaiveDate::from_ymd(s[0..4].parse()?, s[4..6].parse()?, s[6..8].parse()?))
+    Ok(NaiveDate::from_ymd(
+        s[0..4].parse()?,
+        s[4..6].parse()?,
+        s[6..8].parse()?,
+    ))
 }
 
 /// A GV100AD record (Datensatz).
@@ -411,9 +424,11 @@ impl Record {
         }
     }
 
-    /// Returns the [[Ags]] (Amtliche Gemeindeschluessel) for the entry. For Land, Regierungsbezirk, Kreis or Gemeinde this
-    /// is it's unique identifier. For Region, Gemeindeverband it's the Ags of the parent unit. A Region is then further identified
-    /// by it's `region` field, and a Gemeindeverband is identified by it's `gemeindeverband` field.
+    /// Returns the [[Ags]] (Amtliche Gemeindeschluessel) for the entry. For
+    /// Land, Regierungsbezirk, Kreis or Gemeinde this is it's unique
+    /// identifier. For Region, Gemeindeverband it's the Ags of the parent unit.
+    /// A Region is then further identified by it's `region` field, and a
+    /// Gemeindeverband is identified by it's `gemeindeverband` field.
     pub fn ags(&self) -> &Ags {
         match self {
             Record::Land(land) => &land.ags,
@@ -479,8 +494,10 @@ pub struct Region {
     /// Amtlicher Gemeindeschluessel
     pub ags: Ags,
 
-    /// Region identifier. This together with `ags` uniquely identifies a Region. In theory the ags can also be ommitted, since the
-    /// next higher unit is a Land, but this record only applies to the Land Baden-Wuerttemberg.
+    /// Region identifier. This together with `ags` uniquely identifies a
+    /// Region. In theory the ags can also be ommitted, since the
+    /// next higher unit is a Land, but this record only applies to the Land
+    /// Baden-Wuerttemberg.
     pub region: u8,
 
     /// Name of Region
@@ -514,7 +531,8 @@ pub struct Gemeindeverband {
     /// Amtlicher Gemeindeschluessel
     pub ags: Ags,
 
-    /// Identifier of Gemeindeverband. This together with `ags` uniquely identifies a Gemeinderverband.
+    /// Identifier of Gemeindeverband. This together with `ags` uniquely
+    /// identifies a Gemeinderverband.
     pub gemeindeverband: u16,
 
     /// Name of Gemeindeverband
@@ -551,7 +569,8 @@ pub struct Gemeinde {
     pub plz: String,
 }
 
-/// FIXME: Different numbers can have the same meaning, but it depends in which kind of record it is used.
+/// FIXME: Different numbers can have the same meaning, but it depends in which
+/// kind of record it is used.
 #[derive(Clone, Debug)]
 pub enum Textkennzeichen {
     Markt,
@@ -588,10 +607,10 @@ impl FromStr for Textkennzeichen {
 ///
 /// # FIXME
 ///
-/// This is called "Regionalschluessel" in the description, but information about this is ambiguous.
+/// This is called "Regionalschluessel" in the description, but information
+/// about this is ambiguous.
 ///
 /// [1] https://en.wikipedia.org/wiki/Community_Identification_Number#Germany
-///
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Ags {
     pub land: u8,
@@ -618,7 +637,6 @@ impl FromStr for Ags {
     ///  * Regierungsbezirk: 1 digit
     ///  * Kreis: 2 digits
     ///  * Gemeinde: 3 digits
-    ///
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.trim();
 
@@ -658,7 +676,12 @@ impl Ags {
         Self::new(land, Some(regierungsbezirk), Some(kreis), Some(gemeinde))
     }
 
-    fn new(land: u8, regierungsbezirk: Option<u8>, kreis: Option<u8>, gemeinde: Option<u16>) -> Self {
+    fn new(
+        land: u8,
+        regierungsbezirk: Option<u8>,
+        kreis: Option<u8>,
+        gemeinde: Option<u16>,
+    ) -> Self {
         Self {
             land,
             regierungsbezirk,
@@ -667,7 +690,8 @@ impl Ags {
         }
     }
 
-    /// Converts a AGS that is at least specific to a Regierungsbezirk to the AGS of that Regierungsbezirk.
+    /// Converts a AGS that is at least specific to a Regierungsbezirk to the
+    /// AGS of that Regierungsbezirk.
     pub fn to_regierungsbezirk(&self) -> Option<Ags> {
         if let Some(regierungsbezirk) = self.regierungsbezirk {
             Some(Ags::new_regierungsbezirk(self.land, regierungsbezirk))
@@ -676,7 +700,8 @@ impl Ags {
         }
     }
 
-    /// Converts a AGS that is at least specific to a Kreis to the AGS of that Kreis.
+    /// Converts a AGS that is at least specific to a Kreis to the AGS of that
+    /// Kreis.
     pub fn to_kreis(&self) -> Option<Ags> {
         if let (Some(regierungsbezirk), Some(kreis)) = (self.regierungsbezirk, self.kreis) {
             Some(Ags::new_kreis(self.land, regierungsbezirk, kreis))
@@ -685,28 +710,33 @@ impl Ags {
         }
     }
 
-    /// Returns whether this AGS identifies a Land (and thus has no further specifying information).
+    /// Returns whether this AGS identifies a Land (and thus has no further
+    /// specifying information).
     pub fn is_land(&self) -> bool {
         self.regierungsbezirk.is_none()
     }
 
-    /// Returns whether this AGS identifies a Regierungsbezirk (and thus has no further specifying information).
+    /// Returns whether this AGS identifies a Regierungsbezirk (and thus has no
+    /// further specifying information).
     pub fn is_regierungsbezirk(&self) -> bool {
         self.regierungsbezirk.is_some() && self.kreis.is_none()
     }
 
-    /// Returns whether this AGS identifies a Kreis (and thus has no further specifying information).
+    /// Returns whether this AGS identifies a Kreis (and thus has no further
+    /// specifying information).
     pub fn is_kreis(&self) -> bool {
         self.kreis.is_some() && self.gemeinde.is_none()
     }
 
-    /// Returns whether this AGS identifies a Gemeinde (and thus has no further specifying information).
+    /// Returns whether this AGS identifies a Gemeinde (and thus has no further
+    /// specifying information).
     pub fn is_gemeinde(&self) -> bool {
         self.gemeinde.is_some()
     }
 
-    /// Returns whether this AGS contains the Land, Regierungsbezirk, Kreis, or Gemeinde specified by `other`. This also returns
-    /// `true` if the keys identify the same unit.
+    /// Returns whether this AGS contains the Land, Regierungsbezirk, Kreis, or
+    /// Gemeinde specified by `other`. This also returns `true` if the keys
+    /// identify the same unit.
     pub fn contains(&self, other: &Self) -> bool {
         if self.land != other.land {
             return false;
@@ -851,7 +881,8 @@ impl Database {
         self.kreise.get(ags)
     }
 
-    /// Returns a Gemeindeverband by AGS (Land, Regierungsbezirk and Land) and Gemeinderverband key.
+    /// Returns a Gemeindeverband by AGS (Land, Regierungsbezirk and Land) and
+    /// Gemeinderverband key.
     pub fn get_gemeindeverband(&self, ags: &Ags, gemeindeverband: u16) -> Option<&Gemeindeverband> {
         self.gemeindeverbaende.get(ags)?.get(&gemeindeverband)
     }
@@ -866,7 +897,8 @@ impl Database {
         self.laender.values()
     }
 
-    /// Returns an iterator over Kreise contained in Land or Regierungsbezirk `ags`.
+    /// Returns an iterator over Kreise contained in Land or Regierungsbezirk
+    /// `ags`.
     pub fn iter_kreise_in(&self, ags: &Ags) -> impl Iterator<Item = &Kreis> {
         let mut first = ags.clone();
         let mut last = ags.clone();
@@ -883,7 +915,8 @@ impl Database {
         self.kreise.range(first..=last).map(|(_, kreis)| kreis)
     }
 
-    /// Returns an iterator over Kreise contained in Land, Regierungsbezirk, or Gemeinde `ags`.
+    /// Returns an iterator over Kreise contained in Land, Regierungsbezirk, or
+    /// Gemeinde `ags`.
     pub fn iter_gemeinden_in(&self, ags: &Ags) -> impl Iterator<Item = &Gemeinde> {
         let mut first = ags.clone();
         let mut last = ags.clone();
@@ -901,7 +934,9 @@ impl Database {
             last.gemeinde = Some(u16::MAX);
         }
 
-        self.gemeinden.range(first..=last).map(|(_, gemeinde)| gemeinde)
+        self.gemeinden
+            .range(first..=last)
+            .map(|(_, gemeinde)| gemeinde)
     }
 }
 
@@ -932,7 +967,8 @@ trait Visitor {
 
     fn gemeinde(&mut self, _gemeinde: &Gemeinde) {}
 
-    /// TODO: Doesn't currently visit Regierungsbezirke, Regionen, or Gemeindeverbaende
+    /// TODO: Doesn't currently visit Regierungsbezirke, Regionen, or
+    /// Gemeindeverbaende
     fn visit(&mut self, db: &Database) {
         for land in db.iter_laender() {
             if self.begin_land(land) {
@@ -952,14 +988,14 @@ trait Visitor {
 
 #[cfg(test)]
 mod tests {
-    /// These tests need the file `GV100AD_300421.txt` that can be downloaded from [1]
+    /// These tests need the file `GV100AD_300421.txt` that can be downloaded
+    /// from [1]
     ///
     /// [1] https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/_inhalt.html
     ///
     /// # TODO
     ///
     /// * Write more tests
-    ///
     use super::*;
 
     #[test]
@@ -975,7 +1011,9 @@ mod tests {
     pub fn iter_gebiete() {
         let db = Database::from_file("GV100AD_300421.txt").unwrap();
 
-        let kreise_saarland = db.iter_kreise_in(&Ags::new_land(10)).collect::<Vec<&Kreis>>();
+        let kreise_saarland = db
+            .iter_kreise_in(&Ags::new_land(10))
+            .collect::<Vec<&Kreis>>();
 
         assert_eq!(kreise_saarland.len(), 6);
         assert_eq!(kreise_saarland[0].name, "Regionalverband Saarbrücken");
