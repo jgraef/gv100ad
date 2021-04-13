@@ -3,6 +3,7 @@ use std::{
     io::{BufRead, BufReader},
     path::Path,
     str::{Chars, FromStr},
+    convert::TryInto,
 };
 
 use chrono::NaiveDate;
@@ -218,14 +219,14 @@ impl<R: BufRead> Parser<R> {
                 let sitz_verwaltung = fields.next(50).trim().to_owned();
                 tracing::debug!(sitz_verwaltung = ?sitz_verwaltung);
 
-                //let subtype = fields.parse_next(2)?;
-                //tracing::debug!(subtype = ?subtype);
-                //fields.skip(2);
+                let textkennzeichen = fields.parse_next::<u8>(2)?.try_into()?;
+                tracing::debug!(textkennzeichen = ?textkennzeichen);
 
                 Datensatz::Kreis(KreisDaten {
                     gebietsstand,
                     schluessel,
                     name,
+                    textkennzeichen,
                     sitz_verwaltung,
                 })
             }
@@ -246,17 +247,18 @@ impl<R: BufRead> Parser<R> {
                 let name = fields.next(50).trim().to_owned();
                 tracing::debug!(name = ?name);
 
-                let sitz_verwaltung = fields.next(50).trim().to_owned();
+                let sitz_verwaltung = fields.next_opt(50).map(|s| s.trim().to_owned());
                 tracing::debug!(sitz_verwaltung = ?sitz_verwaltung);
 
-                //let subtype = fields.parse_next(2)?;
-                //tracing::debug!(subtype = ?subtype);
+                let textkennzeichen = fields.parse_next::<u8>(2)?.try_into()?;
+                tracing::debug!(textkennzeichen = ?textkennzeichen);
 
                 Datensatz::Gemeindeverband(GemeindeverbandDaten {
                     gebietsstand,
                     kreis_schluessel,
                     gemeindeverband,
                     name,
+                    textkennzeichen,
                     sitz_verwaltung,
                 })
             }
@@ -277,9 +279,8 @@ impl<R: BufRead> Parser<R> {
 
                 fields.skip(50);
 
-                //let subtype = fields.parse_next(2)?;
-                //tracing::debug!(subtype = ?subtype);
-                fields.skip(2);
+                let textkennzeichen = fields.parse_next::<u8>(2)?.try_into()?;
+                tracing::debug!(textkennzeichen = ?textkennzeichen);
 
                 fields.skip(4);
 
@@ -321,6 +322,7 @@ impl<R: BufRead> Parser<R> {
                     schluessel,
                     gemeindeverband,
                     name,
+                    textkennzeichen,
                     area,
                     population_total,
                     population_male,
@@ -356,8 +358,8 @@ mod tests {
     use std::io::Cursor;
 
     use crate::model::{
-        datensatz::Datensatz, gemeinde::GemeindeSchluessel, kreis::KreisSchluessel,
-        land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel, region::RegionSchluessel,
+        datensatz::Datensatz, gemeinde::{GemeindeSchluessel, GemeindeTextkennzeichen}, kreis::{KreisSchluessel, KreisTextkennzeichen},
+        land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel, region::RegionSchluessel, gemeindeverband::GemeindeverbandTextkennzeichen,
     };
 
     use super::*;
@@ -431,6 +433,7 @@ mod tests {
                 );
                 assert_eq!(kreis.name, "Regionalverband Saarbrücken");
                 assert_eq!(kreis.sitz_verwaltung, "Saarbrücken, Landeshauptstadt");
+                assert_eq!(kreis.textkennzeichen, KreisTextkennzeichen::Regionalverband);
             }
             _ => panic!("Incorrect record type"),
         }
@@ -453,7 +456,8 @@ mod tests {
                 );
                 assert_eq!(gemeindeverband.gemeindeverband, 100);
                 assert_eq!(gemeindeverband.name, "Saarbrücken, Landeshauptstadt");
-                assert_eq!(gemeindeverband.sitz_verwaltung, "");
+                assert_eq!(gemeindeverband.sitz_verwaltung, None);
+                assert_eq!(gemeindeverband.textkennzeichen, GemeindeverbandTextkennzeichen::VerbandsfreieGemeinde);
             }
             _ => panic!("Incorrect record type"),
         }
@@ -476,6 +480,7 @@ mod tests {
                 );
                 assert_eq!(gemeinde.gemeindeverband, 100);
                 assert_eq!(gemeinde.name, "Saarbrücken, Landeshauptstadt");
+                assert_eq!(gemeinde.textkennzeichen, GemeindeTextkennzeichen::Stadt);
                 assert_eq!(gemeinde.area, 16752);
                 assert_eq!(gemeinde.population_total, 180374);
                 assert_eq!(gemeinde.population_male, 89528);

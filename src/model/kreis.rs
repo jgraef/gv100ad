@@ -1,11 +1,12 @@
 use std::{
     fmt::{self, Display, Formatter},
     str::FromStr,
+    convert::TryFrom,
 };
 
 use chrono::NaiveDate;
 
-use crate::error::ParseKeyError;
+use crate::error::{ParseKeyError, Error};
 
 use super::{land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel};
 
@@ -80,4 +81,31 @@ pub struct KreisDaten {
 
     /// Location of administration
     pub sitz_verwaltung: String,
+
+    /// Specifies type of Kreis
+    pub textkennzeichen: KreisTextkennzeichen,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub enum KreisTextkennzeichen {
+    KreisfreieStadt,
+    Stadtkreis,
+    Kreis,
+    Landkreis,
+    Regionalverband,
+}
+
+impl TryFrom<u8> for KreisTextkennzeichen {
+    type Error = Error;
+
+    fn try_from(n: u8) -> Result<Self, Error> {
+        match n {
+            41 => Ok(Self::KreisfreieStadt),
+            42 => Ok(Self::Stadtkreis),
+            43 => Ok(Self::Kreis),
+            44 => Ok(Self::Landkreis),
+            45 => Ok(Self::Regionalverband),
+            _ => Err(Error::InvalidTextkennzeichen(n))
+        }
+    }
 }

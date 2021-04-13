@@ -1,6 +1,7 @@
 use std::{
     fmt::{self, Display, Formatter},
     str::FromStr,
+    convert::TryFrom,
 };
 
 use chrono::NaiveDate;
@@ -79,6 +80,9 @@ pub struct GemeindeDaten {
     /// Name of Gemeinde
     pub name: String,
 
+    /// Specifies type of Gemeinde
+    pub textkennzeichen: GemeindeTextkennzeichen,
+
     /// Area in hectare (10000 square-meter)
     pub area: u64,
 
@@ -146,3 +150,34 @@ impl FromStr for Bundestagswahlkreise {
         }
     }
 }
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub enum GemeindeTextkennzeichen {
+    Markt,
+    KreisfreieStadt,
+    Stadtkreis,
+    Stadt,
+    KreisangehoerigeGemeinde,
+    GemeindefreiesGebietBewohnt,
+    GemeindefreiesGebietUnbewohnt,
+    GrosseKreisstadt,
+}
+
+impl TryFrom<u8> for GemeindeTextkennzeichen {
+    type Error = Error;
+
+    fn try_from(n: u8) -> Result<Self, Self::Error> {
+        match n {
+            60 => Ok(Self::Markt),
+            61 => Ok(Self::KreisfreieStadt),
+            62 => Ok(Self::Stadtkreis),
+            63 => Ok(Self::Stadt),
+            64 => Ok(Self::KreisangehoerigeGemeinde),
+            65 => Ok(Self::GemeindefreiesGebietBewohnt),
+            66 => Ok(Self::GemeindefreiesGebietUnbewohnt),
+            67 => Ok(Self::GrosseKreisstadt),
+            _ => Err(Error::InvalidTextkennzeichen(n)),
+        }
+    }
+}
+
