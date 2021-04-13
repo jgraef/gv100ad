@@ -9,9 +9,6 @@ documentation = "https://docs.rs/gv100ad"
 homepage = "https://github.com/jgraef/gv100ad"
 repository = "https://github.com/jgraef/gv100ad"
 
-[badges]
-maintenance = { status = "experimental" }
-
 [dependencies]
 chrono = "0.4"
 thiserror = "1.0"

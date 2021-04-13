@@ -90,8 +90,6 @@
 //! Baden-Wuerttemberg, the land can be ommitted too.
 //!
 //! # TODO
-//!
-//!  - Implement Textkennzeichen correctly.
 //!  - Handle querying of Gemeindeverbaende.
 
 pub mod db;

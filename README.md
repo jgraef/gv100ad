@@ -1,4 +1,6 @@
-[![Crates.io](https://img.shields.io/crates/v/gv100ad.svg)](https://crates.io/crates/gv100ad)
+[![crates.io](https://img.shields.io/crates/v/gv100ad.svg)](https://crates.io/crates/gv100ad)
+[![docs.rs](https://docs.rs/gv100ad/badge.svg)](https://docs.rs/gv100ad)
+![MIT license](https://img.shields.io/crates/l/gv100ad)
 ![Maintenance](https://img.shields.io/badge/maintenance-experimental-blue.svg)
 
 # gv100ad
@@ -83,7 +85,8 @@ hierarchical key containing:
 E.g. a Landschluessel (e.g. `10` for Saarland) only identifies the state. A
 Kreisschluessel contains keys to identify the Land and Regierungsbezirk the
 Kreis is in, and the key for the Kreis itself. E.g. `10041` identifies the
-Kreis Merzig-Wadern (42) in Regierungsbezirk 0 in the state of Saarland (10).
+Kreis Merzig-Wadern (42) in Regierungsbezirk 0 in the state of Saarland
+(10).
 
 Regionen and Gemeindeverbaende are identified somewhat idenpendently from
 the Regionalschluessel.
@@ -94,8 +97,6 @@ Furthermore since Regionen are only valid in the state of
 Baden-Wuerttemberg, the land can be ommitted too.
 
 ## TODO
-
- - Implement Textkennzeichen correctly.
  - Handle querying of Gemeindeverbaende.
 
 ## License
