@@ -1,7 +1,6 @@
-use gv100ad::{Ags, Database};
 
 fn main() {
-    let db = Database::from_path("GV100AD_300421.txt").unwrap();
+    /*let db = Database::from_path("GV100AD_300421.txt").unwrap();
 
     let ags_land = Ags::new_land(10);
 
@@ -17,5 +16,6 @@ fn main() {
                 gemeinde.name, gemeinde.population_total
             );
         }
-    }
+    }*/
+    todo!()
 }
