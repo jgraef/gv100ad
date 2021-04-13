@@ -357,7 +357,7 @@ mod tests {
 
     use crate::model::{
         datensatz::Datensatz, gemeinde::GemeindeSchluessel, kreis::KreisSchluessel,
-        land::LandSchluessel,
+        land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel, region::RegionSchluessel,
     };
 
     use super::*;
@@ -380,6 +380,38 @@ mod tests {
                 assert_eq!(land.schluessel, LandSchluessel::new(10));
                 assert_eq!(land.name, "Saarland");
                 assert_eq!(land.sitz_regierung, "Saarbrücken, Landeshauptstadt");
+            }
+            _ => panic!("Incorrect record type"),
+        }
+    }
+
+    #[test]
+    fn it_parses_regierungsbezirkdaten() {
+        let l = "2020210430072         früher: Reg.-Bez. Trier                           Trier, Stadt                                                                                                                                        ";
+        let record = parse_single_line(l);
+
+        match record {
+            Datensatz::Regierungsbezirk(regierungsbezirk) => {
+                assert_eq!(regierungsbezirk.gebietsstand, NaiveDate::from_ymd(2021, 04, 30));
+                assert_eq!(regierungsbezirk.schluessel, RegierungsbezirkSchluessel::new(LandSchluessel::new(7), 2));
+                assert_eq!(regierungsbezirk.name, "früher: Reg.-Bez. Trier");
+                assert_eq!(regierungsbezirk.sitz_verwaltung, "Trier, Stadt");
+            }
+            _ => panic!("Incorrect record type"),
+        }
+    }
+
+    #[test]
+    fn it_parses_regiondaten() {
+        let l = "30202104300811        Region Stuttgart                                  Stuttgart                                                                                                                                           ";
+        let record = parse_single_line(l);
+
+        match record {
+            Datensatz::Region(region) => {
+                assert_eq!(region.gebietsstand, NaiveDate::from_ymd(2021, 04, 30));
+                assert_eq!(region.schluessel, RegionSchluessel::new(RegierungsbezirkSchluessel::new(LandSchluessel::new(8), 1), 1));
+                assert_eq!(region.name, "Region Stuttgart");
+                assert_eq!(region.sitz_verwaltung, "Stuttgart");
             }
             _ => panic!("Incorrect record type"),
         }
