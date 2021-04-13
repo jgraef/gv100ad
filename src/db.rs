@@ -113,6 +113,11 @@ impl Database {
         V::lookup(k.into(), self)
     }
 
+    pub fn get_by_regional_schluessel(&self, regional_schluessel: RegionalSchluessel) -> Option<&GemeindeDaten> {
+        let gemeinde_schluessel = self.regional_to_gemeinde_schluessel(regional_schluessel)?;
+        self.get(gemeinde_schluessel)
+    }
+
     pub fn all<'a, V>(&'a self) -> V::Iter
     where
         V: IterAll<'a>,
@@ -480,14 +485,14 @@ mod tests {
         assert_eq!(gemeinde.name, "Beckingen");
     }
 
-    /*#[test]
+    #[test]
     fn get_gemeinde_from_regional_schluessel() {
         let db = load_testset();
         let gemeinde: &GemeindeDaten = db
-            .get("10042111".parse::<RegionalSchluessel>().unwrap())
+            .get_by_regional_schluessel("10042111".parse().unwrap())
             .unwrap();
         assert_eq!(gemeinde.name, "Beckingen");
-    }*/
+    }
 
     #[test]
     fn iter_all_laender() {

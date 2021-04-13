@@ -33,10 +33,10 @@
 //!
 //! println!("{}:", land.name);
 //!
-//! for (_, kreis) in db.children::<_, KreisDaten>(schluessel) {
+//! for kreis in db.children::<_, KreisDaten>(schluessel) {
 //!     println!("  {}:", kreis.name);
 //!
-//!     for (_, gemeinde) in db.children::<_, GemeindeDaten>(kreis.schluessel) {
+//!     for gemeinde in db.children::<_, GemeindeDaten>(kreis.schluessel) {
 //!         println!(
 //!             "    {}: {} residents",
 //!             gemeinde.name, gemeinde.population_total
