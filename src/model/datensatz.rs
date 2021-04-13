@@ -1,8 +1,12 @@
 use chrono::NaiveDate;
 
 use super::{
-    gemeinde::GemeindeDaten, gemeindeverband::GemeindeverbandDaten, kreis::KreisDaten,
-    land::LandDaten, regierungsbezirk::RegierungsbezirkDaten, region::RegionDaten,
+    gemeinde::GemeindeDaten,
+    gemeindeverband::GemeindeverbandDaten,
+    kreis::KreisDaten,
+    land::LandDaten,
+    regierungsbezirk::RegierungsbezirkDaten,
+    region::RegionDaten,
 };
 
 /// A GV100AD Daten (Datensatz).

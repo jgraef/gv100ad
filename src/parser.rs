@@ -1,9 +1,9 @@
 use std::{
+    convert::TryInto,
     fs::File,
     io::{BufRead, BufReader},
     path::Path,
     str::{Chars, FromStr},
-    convert::TryInto,
 };
 
 use chrono::NaiveDate;
@@ -358,8 +358,13 @@ mod tests {
     use std::io::Cursor;
 
     use crate::model::{
-        datensatz::Datensatz, gemeinde::{Bundestagswahlkreise, GemeindeSchluessel, GemeindeTextkennzeichen}, kreis::{KreisSchluessel, KreisTextkennzeichen},
-        land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel, region::RegionSchluessel, gemeindeverband::GemeindeverbandTextkennzeichen,
+        datensatz::Datensatz,
+        gemeinde::{Bundestagswahlkreise, GemeindeSchluessel, GemeindeTextkennzeichen},
+        gemeindeverband::GemeindeverbandTextkennzeichen,
+        kreis::{KreisSchluessel, KreisTextkennzeichen},
+        land::LandSchluessel,
+        regierungsbezirk::RegierungsbezirkSchluessel,
+        region::RegionSchluessel,
     };
 
     use super::*;
@@ -394,8 +399,14 @@ mod tests {
 
         match record {
             Datensatz::Regierungsbezirk(regierungsbezirk) => {
-                assert_eq!(regierungsbezirk.gebietsstand, NaiveDate::from_ymd(2021, 04, 30));
-                assert_eq!(regierungsbezirk.schluessel, RegierungsbezirkSchluessel::new(LandSchluessel::new(7), 2));
+                assert_eq!(
+                    regierungsbezirk.gebietsstand,
+                    NaiveDate::from_ymd(2021, 04, 30)
+                );
+                assert_eq!(
+                    regierungsbezirk.schluessel,
+                    RegierungsbezirkSchluessel::new(LandSchluessel::new(7), 2)
+                );
                 assert_eq!(regierungsbezirk.name, "früher: Reg.-Bez. Trier");
                 assert_eq!(regierungsbezirk.sitz_verwaltung, "Trier, Stadt");
             }
@@ -411,7 +422,13 @@ mod tests {
         match record {
             Datensatz::Region(region) => {
                 assert_eq!(region.gebietsstand, NaiveDate::from_ymd(2021, 04, 30));
-                assert_eq!(region.schluessel, RegionSchluessel::new(RegierungsbezirkSchluessel::new(LandSchluessel::new(8), 1), 1));
+                assert_eq!(
+                    region.schluessel,
+                    RegionSchluessel::new(
+                        RegierungsbezirkSchluessel::new(LandSchluessel::new(8), 1),
+                        1
+                    )
+                );
                 assert_eq!(region.name, "Region Stuttgart");
                 assert_eq!(region.sitz_verwaltung, "Stuttgart");
             }
@@ -457,7 +474,10 @@ mod tests {
                 assert_eq!(gemeindeverband.gemeindeverband, 100);
                 assert_eq!(gemeindeverband.name, "Saarbrücken, Landeshauptstadt");
                 assert_eq!(gemeindeverband.sitz_verwaltung, None);
-                assert_eq!(gemeindeverband.textkennzeichen, GemeindeverbandTextkennzeichen::VerbandsfreieGemeinde);
+                assert_eq!(
+                    gemeindeverband.textkennzeichen,
+                    GemeindeverbandTextkennzeichen::VerbandsfreieGemeinde
+                );
             }
             _ => panic!("Incorrect record type"),
         }

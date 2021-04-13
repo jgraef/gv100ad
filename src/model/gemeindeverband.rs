@@ -6,7 +6,6 @@ use super::kreis::KreisSchluessel;
 
 use crate::error::Error;
 
-
 #[derive(Clone, Debug)]
 pub struct GemeindeverbandDaten {
     /// Timestamp
@@ -56,7 +55,7 @@ impl TryFrom<u8> for GemeindeverbandTextkennzeichen {
             56 => Ok(Self::Verwaltungsverband),
             57 => Ok(Self::VGTraegermodell),
             58 => Ok(Self::ErfuellendeGemeinde),
-            _ => Err(Error::InvalidTextkennzeichen(n))
+            _ => Err(Error::InvalidTextkennzeichen(n)),
         }
     }
 }

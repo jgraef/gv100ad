@@ -1,7 +1,7 @@
 use std::{
+    convert::TryFrom,
     fmt::{self, Display, Formatter},
     str::FromStr,
-    convert::TryFrom,
 };
 
 use chrono::NaiveDate;
@@ -9,7 +9,9 @@ use chrono::NaiveDate;
 use crate::error::{Error, ParseKeyError};
 
 use super::{
-    kreis::KreisSchluessel, land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel,
+    kreis::KreisSchluessel,
+    land::LandSchluessel,
+    regierungsbezirk::RegierungsbezirkSchluessel,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -180,4 +182,3 @@ impl TryFrom<u8> for GemeindeTextkennzeichen {
         }
     }
 }
-

@@ -1,12 +1,12 @@
 use std::{
+    convert::TryFrom,
     fmt::{self, Display, Formatter},
     str::FromStr,
-    convert::TryFrom,
 };
 
 use chrono::NaiveDate;
 
-use crate::error::{ParseKeyError, Error};
+use crate::error::{Error, ParseKeyError};
 
 use super::{land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel};
 
@@ -105,7 +105,7 @@ impl TryFrom<u8> for KreisTextkennzeichen {
             43 => Ok(Self::Kreis),
             44 => Ok(Self::Landkreis),
             45 => Ok(Self::Regionalverband),
-            _ => Err(Error::InvalidTextkennzeichen(n))
+            _ => Err(Error::InvalidTextkennzeichen(n)),
         }
     }
 }
