@@ -107,15 +107,9 @@ impl Database {
 
     pub fn get<K, V>(&self, k: K) -> Option<&V>
     where
-        V: Lookup,
-        V::Key: From<K>,
+        V: Lookup<K>,
     {
-        V::lookup(k.into(), self)
-    }
-
-    pub fn get_by_regional_schluessel(&self, regional_schluessel: RegionalSchluessel) -> Option<&GemeindeDaten> {
-        let gemeinde_schluessel = self.regional_to_gemeinde_schluessel(regional_schluessel)?;
-        self.get(gemeinde_schluessel)
+        V::lookup(k, self)
     }
 
     pub fn all<'a, V>(&'a self) -> V::Iter
@@ -260,56 +254,123 @@ impl IntoRangeKey<GemeindeSchluessel> for GemeindeverbandSchluessel {
     }
 }
 
-pub trait Lookup {
-    type Key;
-
-    fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self>;
+pub trait Lookup<K> {
+    fn lookup<'a>(key: K, db: &'a Database) -> Option<&'a Self>;
 }
 
-impl Lookup for LandDaten {
-    type Key = LandSchluessel;
-
-    fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self> {
+impl Lookup<LandSchluessel> for LandDaten {
+    fn lookup<'a>(key: LandSchluessel, db: &'a Database) -> Option<&'a Self> {
         db.laender.get(&key)
     }
 }
 
-impl Lookup for RegierungsbezirkDaten {
-    type Key = RegierungsbezirkSchluessel;
+impl Lookup<RegierungsbezirkSchluessel> for LandDaten {
+    fn lookup<'a>(key: RegierungsbezirkSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.laender.get(&key.into())
+    }
+}
 
-    fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self> {
+impl Lookup<RegionSchluessel> for LandDaten {
+    fn lookup<'a>(key: RegionSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.laender.get(&key.into())
+    }
+}
+
+impl Lookup<KreisSchluessel> for LandDaten {
+    fn lookup<'a>(key: KreisSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.laender.get(&key.into())
+    }
+}
+
+impl Lookup<GemeindeverbandSchluessel> for LandDaten {
+    fn lookup<'a>(key: GemeindeverbandSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.laender.get(&key.into())
+    }
+}
+
+impl Lookup<GemeindeSchluessel> for LandDaten {
+    fn lookup<'a>(key: GemeindeSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.laender.get(&key.into())
+    }
+}
+
+impl Lookup<RegierungsbezirkSchluessel> for RegierungsbezirkDaten {
+    fn lookup<'a>(key: RegierungsbezirkSchluessel, db: &'a Database) -> Option<&'a Self> {
         db.regierungsbezirke.get(&key)
     }
 }
 
-impl Lookup for RegionDaten {
-    type Key = RegionSchluessel;
+impl Lookup<RegionSchluessel> for RegierungsbezirkDaten {
+    fn lookup<'a>(key: RegionSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.regierungsbezirke.get(&key.into())
+    }
+}
 
-    fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self> {
+impl Lookup<KreisSchluessel> for RegierungsbezirkDaten {
+    fn lookup<'a>(key: KreisSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.regierungsbezirke.get(&key.into())
+    }
+}
+
+impl Lookup<GemeindeverbandSchluessel> for RegierungsbezirkDaten {
+    fn lookup<'a>(key: GemeindeverbandSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.regierungsbezirke.get(&key.into())
+    }
+}
+
+impl Lookup<GemeindeSchluessel> for RegierungsbezirkDaten {
+    fn lookup<'a>(key: GemeindeSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.regierungsbezirke.get(&key.into())
+    }
+}
+
+impl Lookup<RegionSchluessel> for RegionDaten {
+    fn lookup<'a>(key: RegionSchluessel, db: &'a Database) -> Option<&'a Self> {
         db.regionen.get(&key)
     }
 }
 
-impl Lookup for KreisDaten {
-    type Key = KreisSchluessel;
-
-    fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self> {
+impl Lookup<KreisSchluessel> for KreisDaten {
+    fn lookup<'a>(key: KreisSchluessel, db: &'a Database) -> Option<&'a Self> {
         db.kreise.get(&key)
     }
 }
 
-impl Lookup for GemeindeverbandDaten {
-    type Key = GemeindeverbandSchluessel;
+impl Lookup<GemeindeverbandSchluessel> for KreisDaten {
+    fn lookup<'a>(key: GemeindeverbandSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.kreise.get(&key.into())
+    }
+}
 
-    fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self> {
+impl Lookup<GemeindeSchluessel> for KreisDaten {
+    fn lookup<'a>(key: GemeindeSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.kreise.get(&key.into())
+    }
+}
+
+
+
+impl Lookup<GemeindeverbandSchluessel> for GemeindeverbandDaten {
+    fn lookup<'a>(key: GemeindeverbandSchluessel, db: &'a Database) -> Option<&'a Self> {
         db.gemeindeverbaende.get(&key)
     }
 }
 
-impl Lookup for GemeindeDaten {
-    type Key = GemeindeSchluessel;
+impl Lookup<GemeindeSchluessel> for GemeindeverbandDaten {
+    fn lookup<'a>(key: GemeindeSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.gemeindeverbaende.get(&key.into())
+    }
+}
 
-    fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self> {
+impl Lookup<GemeindeSchluessel> for GemeindeDaten {
+    fn lookup<'a>(key: GemeindeSchluessel, db: &'a Database) -> Option<&'a Self> {
+        db.gemeinden.get(&key)
+    }
+}
+
+impl Lookup<RegionalSchluessel> for GemeindeDaten {
+    fn lookup<'a>(key: RegionalSchluessel, db: &'a Database) -> Option<&'a Self> {
+        let key = db.regional_to_gemeinde_schluessel(key)?;
         db.gemeinden.get(&key)
     }
 }
@@ -489,7 +550,7 @@ mod tests {
     fn get_gemeinde_from_regional_schluessel() {
         let db = load_testset();
         let gemeinde: &GemeindeDaten = db
-            .get_by_regional_schluessel("10042111".parse().unwrap())
+            .get("10042111".parse::<RegionalSchluessel>().unwrap())
             .unwrap();
         assert_eq!(gemeinde.name, "Beckingen");
     }
