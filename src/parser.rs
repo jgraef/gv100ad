@@ -1,8 +1,8 @@
 use std::{
-    str::{FromStr, Chars},
+    fs::File,
     io::{BufRead, BufReader},
     path::Path,
-    fs::File,
+    str::{Chars, FromStr},
 };
 
 use chrono::NaiveDate;
@@ -10,16 +10,15 @@ use chrono::NaiveDate;
 use crate::{
     error::Error,
     model::{
-        gemeinde::{GemeindeDaten, Gerichtbarkeit, Bundestagswahlkreise},
+        datensatz::Datensatz,
+        gemeinde::{Bundestagswahlkreise, GemeindeDaten, Gerichtbarkeit},
         gemeindeverband::GemeindeverbandDaten,
         kreis::KreisDaten,
         land::LandDaten,
         regierungsbezirk::RegierungsbezirkDaten,
         region::RegionDaten,
-        datensatz::Datensatz,
     },
 };
-
 
 /// Reader to read fields from a single data record (i.e. line). Specifically
 /// this makes sure that data is read correctly as UTF-8.
@@ -50,16 +49,32 @@ impl<'a> FieldReader<'a> {
             }
         }
 
-        &s[0..nb]
+        let s = &s[0..nb];
+
+        tracing::trace!("read field: {:?}", s);
+
+        s
+    }
+
+    pub fn next_opt(&mut self, n: usize) -> Option<&str> {
+        let s = self.next(n);
+        if s.chars().all(|c| c == ' ') {
+            None
+        } else {
+            Some(s)
+        }
     }
 
     /// Reads a field of length `n` and parses it as `T`.
     pub fn parse_next<T: FromStr>(&mut self, n: usize) -> Result<T, <T as FromStr>::Err> {
-        let s = self.next(n);
-        
-        tracing::debug!("parsing: {:?}", s);
+        self.next(n).parse()
+    }
 
-        s.parse()
+    pub fn parse_next_opt<T: FromStr>(
+        &mut self,
+        n: usize,
+    ) -> Result<Option<T>, <T as FromStr>::Err> {
+        self.next_opt(n).map(|s| s.parse()).transpose()
     }
 
     /// Skips `n` characters.
@@ -282,35 +297,21 @@ impl<R: BufRead> Parser<R> {
                 let plz = fields.next(5).to_owned();
                 tracing::debug!(plz = ?plz);
 
-                let plz_unambiguous = fields.next(5).chars().all(|c| c == ' ');
+                let plz_unambiguous = fields.next_opt(5).is_none();
                 tracing::debug!(plz_unambiguous = ?plz_unambiguous);
 
                 fields.skip(2);
 
-                let finanzamtbezirk = fields.parse_next(4)?;
+                let finanzamtbezirk = fields.parse_next_opt(4)?;
                 tracing::debug!(finanzamtbezirk = ?finanzamtbezirk);
 
-                let gerichtbarkeit = Gerichtbarkeit {
-                    oberlandesgericht: fields.parse_next(1)?,
-                    landgericht: fields.parse_next(1)?,
-                    amtsgericht: fields.parse_next(2)?,
-                };
+                let gerichtbarkeit = fields.parse_next_opt(4)?;
                 tracing::debug!(gerichtbarkeit = ?gerichtbarkeit);
 
-                let arbeitsargenturbezirk = fields.parse_next(5)?;
+                let arbeitsargenturbezirk = fields.parse_next_opt(5)?;
                 tracing::debug!(arbeitsargenturbezirk = ?arbeitsargenturbezirk);
 
-                let bundestagswahlkreise = {
-                    let von = fields.parse_next(3)?;
-
-                    let s = fields.next(3);
-                    if s.chars().all(|c| c == ' ') {
-                        Bundestagswahlkreise::Single(von)
-                    }
-                    else {
-                        Bundestagswahlkreise::Range(von, s.parse()?)
-                    }
-                };
+                let bundestagswahlkreise = fields.parse_next_opt(6)?;
                 tracing::debug!(bundestagswahlkreise = ?bundestagswahlkreise);
                 //fields.skip(4);
                 //fields.skip(20);
@@ -350,16 +351,13 @@ pub fn parse_date(s: &str) -> Result<NaiveDate, Error> {
     ))
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
 
     use crate::model::{
+        datensatz::Datensatz, gemeinde::GemeindeSchluessel, kreis::KreisSchluessel,
         land::LandSchluessel,
-        kreis::KreisSchluessel,
-        gemeinde::GemeindeSchluessel,
-        datensatz::Datensatz,
     };
 
     use super::*;
@@ -382,7 +380,7 @@ mod tests {
                 assert_eq!(land.schluessel, LandSchluessel::new(10));
                 assert_eq!(land.name, "Saarland");
                 assert_eq!(land.sitz_regierung, "Saarbrücken, Landeshauptstadt");
-            },
+            }
             _ => panic!("Incorrect record type"),
         }
     }
@@ -395,10 +393,13 @@ mod tests {
         match record {
             Datensatz::Kreis(kreis) => {
                 assert_eq!(kreis.gebietsstand, NaiveDate::from_ymd(2021, 04, 30));
-                assert_eq!(kreis.schluessel, KreisSchluessel::new_land(LandSchluessel::new(10), 41));
+                assert_eq!(
+                    kreis.schluessel,
+                    KreisSchluessel::new_land(LandSchluessel::new(10), 41)
+                );
                 assert_eq!(kreis.name, "Regionalverband Saarbrücken");
                 assert_eq!(kreis.sitz_verwaltung, "Saarbrücken, Landeshauptstadt");
-            },
+            }
             _ => panic!("Incorrect record type"),
         }
     }
@@ -410,12 +411,18 @@ mod tests {
 
         match record {
             Datensatz::Gemeindeverband(gemeindeverband) => {
-                assert_eq!(gemeindeverband.gebietsstand, NaiveDate::from_ymd(2021, 04, 30));
-                assert_eq!(gemeindeverband.kreis_schluessel, KreisSchluessel::new_land(LandSchluessel::new(10), 41));
+                assert_eq!(
+                    gemeindeverband.gebietsstand,
+                    NaiveDate::from_ymd(2021, 04, 30)
+                );
+                assert_eq!(
+                    gemeindeverband.kreis_schluessel,
+                    KreisSchluessel::new_land(LandSchluessel::new(10), 41)
+                );
                 assert_eq!(gemeindeverband.gemeindeverband, 100);
                 assert_eq!(gemeindeverband.name, "Saarbrücken, Landeshauptstadt");
                 assert_eq!(gemeindeverband.sitz_verwaltung, "");
-            },
+            }
             _ => panic!("Incorrect record type"),
         }
     }
@@ -428,7 +435,13 @@ mod tests {
         match record {
             Datensatz::Gemeinde(gemeinde) => {
                 assert_eq!(gemeinde.gebietsstand, NaiveDate::from_ymd(2021, 04, 30));
-                assert_eq!(gemeinde.schluessel, GemeindeSchluessel::new(KreisSchluessel::new_land(LandSchluessel::new(10), 41), 100));
+                assert_eq!(
+                    gemeinde.schluessel,
+                    GemeindeSchluessel::new(
+                        KreisSchluessel::new_land(LandSchluessel::new(10), 41),
+                        100
+                    )
+                );
                 assert_eq!(gemeinde.gemeindeverband, 100);
                 assert_eq!(gemeinde.name, "Saarbrücken, Landeshauptstadt");
                 assert_eq!(gemeinde.area, 16752);
@@ -436,16 +449,17 @@ mod tests {
                 assert_eq!(gemeinde.population_male, 89528);
                 assert_eq!(gemeinde.plz, "66111");
                 assert_eq!(gemeinde.plz_unambiguous, false);
-                assert_eq!(gemeinde.finanzamtbezirk, 1040);
-                assert_eq!(gemeinde.gerichtbarkeit.oberlandesgericht, 1);
-                assert_eq!(gemeinde.gerichtbarkeit.landgericht, 1);
-                assert_eq!(gemeinde.gerichtbarkeit.amtsgericht, 9);
-                assert_eq!(gemeinde.arbeitsargenturbezirk, 55501);
+                assert_eq!(gemeinde.finanzamtbezirk, Some(1040));
+                let gerichtbarkeit = gemeinde.gerichtbarkeit.unwrap();
+                assert_eq!(gerichtbarkeit.oberlandesgericht, "1");
+                assert_eq!(gerichtbarkeit.landgericht, "1");
+                assert_eq!(gerichtbarkeit.amtsgericht, "09");
+                assert_eq!(gemeinde.arbeitsargenturbezirk, Some(55501));
                 match gemeinde.bundestagswahlkreise {
-                    Bundestagswahlkreise::Single(n) => assert_eq!(n, 296),
+                    Some(Bundestagswahlkreise::Single(n)) => assert_eq!(n, 296),
                     _ => panic!("Expected there to be a single Bundestagswahlkreis"),
                 }
-            },
+            }
             _ => panic!("Incorrect record type"),
         }
     }

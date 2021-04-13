@@ -1,16 +1,13 @@
 use std::{
+    fmt::{self, Display, Formatter},
     str::FromStr,
-    fmt::{Display, Formatter, self},
 };
 
 use chrono::NaiveDate;
 
 use crate::error::ParseKeyError;
 
-use super::{
-    land::LandSchluessel,
-};
-
+use super::land::LandSchluessel;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RegierungsbezirkSchluessel {

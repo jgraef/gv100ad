@@ -1,17 +1,13 @@
 use std::{
+    fmt::{self, Display, Formatter},
     str::FromStr,
-    fmt::{Display, Formatter, self},
 };
 
 use chrono::NaiveDate;
 
 use crate::error::ParseKeyError;
 
-use super::{
-    regierungsbezirk::RegierungsbezirkSchluessel,
-    land::LandSchluessel,
-};
-
+use super::{land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct KreisSchluessel {
@@ -27,7 +23,8 @@ impl KreisSchluessel {
         }
     }
 
-    /// Creates a Kreisschluessel directly from the parent Landschluessel and the Kreis identifier. This sets the Regierungsbezirk part to 0.
+    /// Creates a Kreisschluessel directly from the parent Landschluessel and
+    /// the Kreis identifier. This sets the Regierungsbezirk part to 0.
     pub fn new_land(land: LandSchluessel, kreis: u8) -> Self {
         Self {
             regierungsbezirk: RegierungsbezirkSchluessel::new(land, 0),
@@ -68,7 +65,6 @@ impl From<KreisSchluessel> for LandSchluessel {
         kreis.regierungsbezirk.into()
     }
 }
-
 
 /// A Kreis Daten
 #[derive(Clone, Debug)]

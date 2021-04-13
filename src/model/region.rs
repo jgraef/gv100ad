@@ -1,17 +1,13 @@
 use std::{
+    fmt::{self, Display, Formatter},
     str::FromStr,
-    fmt::{Display, Formatter, self},
 };
 
 use chrono::NaiveDate;
 
 use crate::error::ParseKeyError;
 
-use super::{
-    regierungsbezirk::RegierungsbezirkSchluessel,
-    land::LandSchluessel,
-};
-
+use super::{land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RegionSchluessel {
@@ -61,7 +57,6 @@ impl From<RegionSchluessel> for LandSchluessel {
     }
 }
 
-
 /// A Region Daten (only Baden-Wuerttemberg)
 #[derive(Clone, Debug)]
 pub struct RegionDaten {
@@ -77,4 +72,3 @@ pub struct RegionDaten {
     /// Location of administration
     pub sitz_verwaltung: String,
 }
-

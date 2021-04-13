@@ -1,21 +1,28 @@
+use gv100ad::{
+    model::{
+        gemeinde::GemeindeDaten,
+        kreis::KreisDaten,
+        land::{LandDaten, LandSchluessel},
+    },
+    Database,
+};
 
 fn main() {
-    /*let db = Database::from_path("GV100AD_300421.txt").unwrap();
+    let db = Database::from_path("GV100AD3004/GV100AD_300421.txt").unwrap();
 
-    let ags_land = Ags::new_land(10);
+    let schluessel = "10".parse::<LandSchluessel>().unwrap();
+    let land = db.get::<_, LandDaten>(schluessel).unwrap();
 
-    let land = db.get_land(&ags_land).unwrap();
     println!("{}:", land.name);
 
-    for kreis in db.iter_kreise_in(&ags_land) {
+    for (_, kreis) in db.children::<_, KreisDaten>(schluessel) {
         println!("  {}:", kreis.name);
 
-        for gemeinde in db.iter_gemeinden_in(&kreis.ags) {
+        for (_, gemeinde) in db.children::<_, GemeindeDaten>(kreis.schluessel) {
             println!(
                 "    {}: {} residents",
                 gemeinde.name, gemeinde.population_total
             );
         }
-    }*/
-    todo!()
+    }
 }

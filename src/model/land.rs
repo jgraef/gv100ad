@@ -1,12 +1,11 @@
 use std::{
+    fmt::{self, Display, Formatter},
     str::FromStr,
-    fmt::{Display, Formatter, self},
 };
 
 use chrono::NaiveDate;
 
 use crate::error::ParseKeyError;
-
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LandSchluessel {
@@ -15,9 +14,7 @@ pub struct LandSchluessel {
 
 impl LandSchluessel {
     pub fn new(land: u8) -> Self {
-        Self {
-            land
-        }
+        Self { land }
     }
 }
 

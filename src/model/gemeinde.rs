@@ -1,18 +1,15 @@
 use std::{
+    fmt::{self, Display, Formatter},
     str::FromStr,
-    fmt::{Display, Formatter, self},
 };
 
 use chrono::NaiveDate;
 
-use crate::error::ParseKeyError;
+use crate::error::{Error, ParseKeyError};
 
 use super::{
-    kreis::KreisSchluessel,
-    regierungsbezirk::RegierungsbezirkSchluessel,
-    land::LandSchluessel,
+    kreis::KreisSchluessel, land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel,
 };
-
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct GemeindeSchluessel {
@@ -22,10 +19,7 @@ pub struct GemeindeSchluessel {
 
 impl GemeindeSchluessel {
     pub fn new(kreis: KreisSchluessel, gemeinde: u16) -> Self {
-        Self {
-            kreis,
-            gemeinde,
-        }
+        Self { kreis, gemeinde }
     }
 }
 
@@ -50,7 +44,6 @@ impl Display for GemeindeSchluessel {
     }
 }
 
-
 impl From<GemeindeSchluessel> for KreisSchluessel {
     fn from(gemeinde: GemeindeSchluessel) -> Self {
         gemeinde.kreis
@@ -69,11 +62,9 @@ impl From<GemeindeSchluessel> for LandSchluessel {
     }
 }
 
-
 /// # Todo
-/// 
+///
 ///  - Add missing data
-/// 
 #[derive(Clone, Debug)]
 pub struct GemeindeDaten {
     /// Timestamp
@@ -103,21 +94,33 @@ pub struct GemeindeDaten {
     /// Whether the PLZ is unambiguous or not
     pub plz_unambiguous: bool,
 
-    pub finanzamtbezirk: u16,
+    pub finanzamtbezirk: Option<u16>,
 
-    pub gerichtbarkeit: Gerichtbarkeit,
+    pub gerichtbarkeit: Option<Gerichtbarkeit>,
 
-    pub arbeitsargenturbezirk: u32,
+    pub arbeitsargenturbezirk: Option<u32>,
 
-    pub bundestagswahlkreise: Bundestagswahlkreise,
+    pub bundestagswahlkreise: Option<Bundestagswahlkreise>,
 }
 
 /// Information regarding juristical districts
 #[derive(Clone, Debug)]
 pub struct Gerichtbarkeit {
-    pub oberlandesgericht: u8,
-    pub landgericht: u8,
-    pub amtsgericht: u8,
+    pub oberlandesgericht: String,
+    pub landgericht: String,
+    pub amtsgericht: String,
+}
+
+impl FromStr for Gerichtbarkeit {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Gerichtbarkeit {
+            oberlandesgericht: s[0..1].to_owned(),
+            landgericht: s[1..2].to_owned(),
+            amtsgericht: s[2..4].to_owned(),
+        })
+    }
 }
 
 /// Associated election districts. If `Range`, it can include gaps.
@@ -125,4 +128,21 @@ pub struct Gerichtbarkeit {
 pub enum Bundestagswahlkreise {
     Single(u16),
     Range(u16, u16),
+}
+
+impl FromStr for Bundestagswahlkreise {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let von = s[..3].parse()?;
+        tracing::trace!(von = ?von);
+
+        let bis = &s[3..];
+        tracing::trace!(bis = ?bis);
+        if bis.chars().all(|c| c == ' ') {
+            Ok(Bundestagswahlkreise::Single(von))
+        } else {
+            Ok(Bundestagswahlkreise::Range(von, bis.parse()?))
+        }
+    }
 }
