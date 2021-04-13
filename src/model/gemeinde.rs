@@ -9,24 +9,29 @@ use chrono::NaiveDate;
 use crate::error::{Error, ParseKeyError};
 
 use super::{
+    gemeindeverband::GemeindeverbandSchluessel,
     kreis::KreisSchluessel,
     land::LandSchluessel,
     regierungsbezirk::RegierungsbezirkSchluessel,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct GemeindeSchluessel {
-    kreis: KreisSchluessel,
-    gemeinde: u16,
+pub struct RegionalSchluessel {
+    pub kreis: KreisSchluessel,
+    pub gemeinde: u16,
 }
 
-impl GemeindeSchluessel {
+impl RegionalSchluessel {
     pub fn new(kreis: KreisSchluessel, gemeinde: u16) -> Self {
         Self { kreis, gemeinde }
     }
+
+    pub fn to_gemeinde_schluessel(self, gemeindeverband: u16) -> GemeindeSchluessel {
+        GemeindeSchluessel::from_regional_schluessel(self, gemeindeverband)
+    }
 }
 
-impl FromStr for GemeindeSchluessel {
+impl FromStr for RegionalSchluessel {
     type Err = ParseKeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -34,40 +39,120 @@ impl FromStr for GemeindeSchluessel {
             return Err(ParseKeyError::invalid_length(s, 8));
         }
 
-        let regierungsbezirk = s[0..5].parse()?;
-        let kreis = s[5..].parse().map_err(|_| ParseKeyError::non_numeric(s))?;
+        let kreis = s[0..5].parse()?;
+        let gemeinde = s[5..].parse().map_err(|_| ParseKeyError::non_numeric(s))?;
 
-        Ok(Self::new(regierungsbezirk, kreis))
+        Ok(Self::new(kreis, gemeinde))
     }
 }
 
-impl Display for GemeindeSchluessel {
+impl Display for RegionalSchluessel {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}{:3}", self.kreis, self.gemeinde)
     }
 }
 
+impl From<RegionalSchluessel> for KreisSchluessel {
+    fn from(gemeinde: RegionalSchluessel) -> Self {
+        gemeinde.kreis
+    }
+}
+
+impl From<RegionalSchluessel> for RegierungsbezirkSchluessel {
+    fn from(gemeinde: RegionalSchluessel) -> Self {
+        gemeinde.kreis.into()
+    }
+}
+
+impl From<RegionalSchluessel> for LandSchluessel {
+    fn from(gemeinde: RegionalSchluessel) -> Self {
+        gemeinde.kreis.into()
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct GemeindeSchluessel {
+    pub gemeindeverband: GemeindeverbandSchluessel,
+    pub gemeinde: u16,
+}
+
+impl GemeindeSchluessel {
+    pub fn new(gemeindeverband: GemeindeverbandSchluessel, gemeinde: u16) -> Self {
+        Self {
+            gemeindeverband,
+            gemeinde,
+        }
+    }
+
+    pub fn from_regional_schluessel(
+        regional_schluessel: RegionalSchluessel,
+        gemeindeverband: u16,
+    ) -> Self {
+        Self {
+            gemeindeverband: GemeindeverbandSchluessel::new(
+                regional_schluessel.kreis,
+                gemeindeverband,
+            ),
+            gemeinde: regional_schluessel.gemeinde,
+        }
+    }
+}
+
+impl FromStr for GemeindeSchluessel {
+    type Err = ParseKeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() != 12 {
+            return Err(ParseKeyError::invalid_length(s, 12));
+        }
+
+        let gemeindeverband = s[0..9].parse()?;
+        let gemeinde = s[9..].parse().map_err(|_| ParseKeyError::non_numeric(s))?;
+
+        Ok(Self::new(gemeindeverband, gemeinde))
+    }
+}
+
+impl Display for GemeindeSchluessel {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}{:3}", self.gemeindeverband, self.gemeinde)
+    }
+}
+
+impl From<GemeindeSchluessel> for GemeindeverbandSchluessel {
+    fn from(gemeinde: GemeindeSchluessel) -> Self {
+        gemeinde.gemeindeverband
+    }
+}
+
 impl From<GemeindeSchluessel> for KreisSchluessel {
     fn from(gemeinde: GemeindeSchluessel) -> Self {
-        gemeinde.kreis
+        gemeinde.gemeindeverband.into()
     }
 }
 
 impl From<GemeindeSchluessel> for RegierungsbezirkSchluessel {
     fn from(gemeinde: GemeindeSchluessel) -> Self {
-        gemeinde.kreis.into()
+        gemeinde.gemeindeverband.into()
     }
 }
 
 impl From<GemeindeSchluessel> for LandSchluessel {
     fn from(gemeinde: GemeindeSchluessel) -> Self {
-        gemeinde.kreis.into()
+        gemeinde.gemeindeverband.into()
     }
 }
 
-/// # Todo
-///
-///  - Add missing data
+impl From<GemeindeSchluessel> for RegionalSchluessel {
+    fn from(gemeinde: GemeindeSchluessel) -> Self {
+        let kreis = gemeinde.gemeindeverband.into();
+        RegionalSchluessel {
+            kreis,
+            gemeinde: gemeinde.gemeinde,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct GemeindeDaten {
     /// Timestamp
@@ -75,9 +160,6 @@ pub struct GemeindeDaten {
 
     /// Gemeindeschluessel
     pub schluessel: GemeindeSchluessel,
-
-    /// Identifier of the Gemeinderverband this Gemeinde belongs to.
-    pub gemeindeverband: u16,
 
     /// Name of Gemeinde
     pub name: String,
@@ -107,6 +189,12 @@ pub struct GemeindeDaten {
     pub arbeitsargenturbezirk: Option<u32>,
 
     pub bundestagswahlkreise: Option<Bundestagswahlkreise>,
+}
+
+impl GemeindeDaten {
+    pub fn regional_schluessel(&self) -> RegionalSchluessel {
+        self.schluessel.into()
+    }
 }
 
 /// Information regarding juristical districts

@@ -73,7 +73,8 @@
 //!  1. Land: 2 digits, or `u8`
 //!  2. Regierungsbezirk: 1 digit, or `u8`
 //!  3. Kreis: 2 digits, or `u8`
-//!  4. Gemeinde: 3 digits, or `u8`.
+//!  4. Gemeindeverband: 4 digits, or `u16`
+//!  5. Gemeinde: 3 digits, or `u16`.
 //!
 //! E.g. a Landschluessel (e.g. `10` for Saarland) only identifies the state. A
 //! Kreisschluessel contains keys to identify the Land and Regierungsbezirk the
@@ -91,6 +92,8 @@
 //!
 //! # TODO
 //!  - Handle querying of Gemeindeverbaende.
+//!  - Update description about keys, especially the difference between
+//!    Regionalschluessel and Gemeindeschluessel
 
 pub mod db;
 pub mod error;

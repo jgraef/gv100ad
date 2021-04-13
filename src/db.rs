@@ -1,5 +1,8 @@
 use std::{
-    collections::btree_map::{self, BTreeMap},
+    collections::{
+        btree_map::{self, BTreeMap},
+        HashMap,
+    },
     io::BufRead,
     iter::Iterator,
     path::Path,
@@ -9,8 +12,8 @@ use crate::{
     error::Error,
     model::{
         datensatz::Datensatz,
-        gemeinde::{GemeindeDaten, GemeindeSchluessel},
-        gemeindeverband::GemeindeverbandDaten,
+        gemeinde::{GemeindeDaten, GemeindeSchluessel, RegionalSchluessel},
+        gemeindeverband::{GemeindeverbandDaten, GemeindeverbandSchluessel},
         kreis::{KreisDaten, KreisSchluessel},
         land::{LandDaten, LandSchluessel},
         regierungsbezirk::{RegierungsbezirkDaten, RegierungsbezirkSchluessel},
@@ -20,6 +23,7 @@ use crate::{
 };
 
 /// A (in-memory) database that stores GV100AD data for querying.
+#[derive(Clone, Debug, Default)]
 pub struct Database {
     /// Laender
     laender: BTreeMap<LandSchluessel, LandDaten>,
@@ -34,10 +38,12 @@ pub struct Database {
     kreise: BTreeMap<KreisSchluessel, KreisDaten>,
 
     /// Gemeindeverbaende
-    gemeindeverbaende: BTreeMap<KreisSchluessel, BTreeMap<u16, GemeindeverbandDaten>>,
+    gemeindeverbaende: BTreeMap<GemeindeverbandSchluessel, GemeindeverbandDaten>,
 
     /// Gemeinden
     gemeinden: BTreeMap<GemeindeSchluessel, GemeindeDaten>,
+
+    gemeindeverband_schluessel: HashMap<RegionalSchluessel, u16>,
 }
 
 impl Database {
@@ -53,48 +59,50 @@ impl Database {
 
     /// Create database from GV100AD parser.
     pub fn from_parser<R: BufRead>(mut parser: Parser<R>) -> Result<Self, Error> {
-        let mut laender = BTreeMap::new();
-        let mut regierungsbezirke = BTreeMap::new();
-        let mut kreise = BTreeMap::new();
-        let mut gemeinden = BTreeMap::new();
-        let mut regionen = BTreeMap::new();
-        let mut gemeindeverbaende: BTreeMap<KreisSchluessel, BTreeMap<u16, GemeindeverbandDaten>> =
-            BTreeMap::new();
+        let mut db = Self::default();
 
-        while let Some(record) = parser.parse_line()? {
-            match record {
-                Datensatz::Land(land) => {
-                    laender.insert(land.schluessel.clone(), land);
-                }
-                Datensatz::Regierungsbezirk(regierungsbezirk) => {
-                    regierungsbezirke.insert(regierungsbezirk.schluessel.clone(), regierungsbezirk);
-                }
-                Datensatz::Kreis(kreis) => {
-                    kreise.insert(kreis.schluessel.clone(), kreis);
-                }
-                Datensatz::Gemeinde(gemeinde) => {
-                    gemeinden.insert(gemeinde.schluessel.clone(), gemeinde);
-                }
-                Datensatz::Region(region) => {
-                    regionen.insert(region.schluessel, region);
-                }
-                Datensatz::Gemeindeverband(gemeindeverband) => {
-                    gemeindeverbaende
-                        .entry(gemeindeverband.kreis_schluessel.clone())
-                        .or_default()
-                        .insert(gemeindeverband.gemeindeverband, gemeindeverband);
-                }
-            }
+        while let Some(datensatz) = parser.parse_line()? {
+            db.insert(datensatz);
         }
 
-        Ok(Self {
-            laender,
-            regierungsbezirke,
-            kreise,
-            gemeinden,
-            regionen,
-            gemeindeverbaende,
-        })
+        Ok(db)
+    }
+
+    pub fn insert(&mut self, datensatz: Datensatz) {
+        match datensatz {
+            Datensatz::Land(land) => {
+                self.laender.insert(land.schluessel, land);
+            }
+            Datensatz::Regierungsbezirk(regierungsbezirk) => {
+                self.regierungsbezirke
+                    .insert(regierungsbezirk.schluessel, regierungsbezirk);
+            }
+            Datensatz::Region(region) => {
+                self.regionen.insert(region.schluessel, region);
+            }
+            Datensatz::Kreis(kreis) => {
+                self.kreise.insert(kreis.schluessel, kreis);
+            }
+            Datensatz::Gemeindeverband(gemeindeverband) => {
+                self.gemeindeverbaende
+                    .insert(gemeindeverband.schluessel, gemeindeverband);
+            }
+            Datensatz::Gemeinde(gemeinde) => {
+                self.gemeindeverband_schluessel.insert(
+                    gemeinde.schluessel.into(),
+                    gemeinde.schluessel.gemeindeverband.gemeindeverband,
+                );
+                self.gemeinden.insert(gemeinde.schluessel.into(), gemeinde);
+            }
+        }
+    }
+
+    pub fn regional_to_gemeinde_schluessel(
+        &self,
+        regional_schluessel: RegionalSchluessel,
+    ) -> Option<GemeindeSchluessel> {
+        let gemeindeverband = self.gemeindeverband_schluessel.get(&regional_schluessel)?;
+        Some(regional_schluessel.to_gemeinde_schluessel(*gemeindeverband))
     }
 
     pub fn get<K, V>(&self, k: K) -> Option<&V>
@@ -112,12 +120,12 @@ impl Database {
         V::iter_all(self)
     }
 
-    pub fn children<'a, K, V>(&'a self, k: K) -> V::Iter
+    pub fn children<'a, K, V>(&'a self, k: K) -> impl Iterator<Item = &V>
     where
         V: IterChildrenOf<'a>,
         K: IntoRangeKey<V::Key>,
     {
-        V::iter_children_of(self, k)
+        V::iter_children_of(self, k).map(|(_, v)| v)
     }
 }
 
@@ -129,6 +137,7 @@ pub trait IntoRangeKey<T> {
     fn into_range_key(self) -> RangeInclusive<T>;
 }
 
+/// Creates a range of keys to iterate over all Regierungsbezirke in a Land
 impl IntoRangeKey<RegierungsbezirkSchluessel> for LandSchluessel {
     fn into_range_key(self) -> RangeInclusive<RegierungsbezirkSchluessel> {
         RegierungsbezirkSchluessel::new(self, u8::MIN)
@@ -136,6 +145,7 @@ impl IntoRangeKey<RegierungsbezirkSchluessel> for LandSchluessel {
     }
 }
 
+/// Creates a range of keys to iterate over all Regionen in a Land
 impl IntoRangeKey<RegionSchluessel> for LandSchluessel {
     fn into_range_key(self) -> RangeInclusive<RegionSchluessel> {
         RegionSchluessel::new(RegierungsbezirkSchluessel::new(self, u8::MIN), u8::MIN)
@@ -143,12 +153,7 @@ impl IntoRangeKey<RegionSchluessel> for LandSchluessel {
     }
 }
 
-impl IntoRangeKey<KreisSchluessel> for RegierungsbezirkSchluessel {
-    fn into_range_key(self) -> RangeInclusive<KreisSchluessel> {
-        KreisSchluessel::new(self, u8::MIN)..=KreisSchluessel::new(self, u8::MAX)
-    }
-}
-
+/// Creates a range of keys to iterate over all Kreise in a Land
 impl IntoRangeKey<KreisSchluessel> for LandSchluessel {
     fn into_range_key(self) -> RangeInclusive<KreisSchluessel> {
         KreisSchluessel::new(RegierungsbezirkSchluessel::new(self, u8::MIN), u8::MIN)
@@ -156,35 +161,97 @@ impl IntoRangeKey<KreisSchluessel> for LandSchluessel {
     }
 }
 
+/// Creates a range of keys to iterate over all Gemeindeverbaende in a Land
+impl IntoRangeKey<GemeindeverbandSchluessel> for LandSchluessel {
+    fn into_range_key(self) -> RangeInclusive<GemeindeverbandSchluessel> {
+        GemeindeverbandSchluessel::new(
+            KreisSchluessel::new(RegierungsbezirkSchluessel::new(self, u8::MIN), u8::MIN),
+            u16::MIN,
+        )
+            ..=GemeindeverbandSchluessel::new(
+                KreisSchluessel::new(RegierungsbezirkSchluessel::new(self, u8::MAX), u8::MAX),
+                u16::MAX,
+            )
+    }
+}
+
+/// Creates a range of keys to iterate over all Gemeinden in a Land
+impl IntoRangeKey<GemeindeSchluessel> for LandSchluessel {
+    fn into_range_key(self) -> RangeInclusive<GemeindeSchluessel> {
+        GemeindeSchluessel::new(
+            GemeindeverbandSchluessel::new(
+                KreisSchluessel::new(RegierungsbezirkSchluessel::new(self, u8::MIN), u8::MIN),
+                u16::MIN,
+            ),
+            u16::MIN,
+        )
+            ..=GemeindeSchluessel::new(
+                GemeindeverbandSchluessel::new(
+                    KreisSchluessel::new(RegierungsbezirkSchluessel::new(self, u8::MAX), u8::MAX),
+                    u16::MAX,
+                ),
+                u16::MAX,
+            )
+    }
+}
+
+/// Creates a range of keys to iterate over all Kreise in a Regierungsbezirk
 impl IntoRangeKey<RegionSchluessel> for RegierungsbezirkSchluessel {
     fn into_range_key(self) -> RangeInclusive<RegionSchluessel> {
         RegionSchluessel::new(self, u8::MIN)..=RegionSchluessel::new(self, u8::MAX)
     }
 }
 
-impl IntoRangeKey<GemeindeSchluessel> for KreisSchluessel {
-    fn into_range_key(self) -> RangeInclusive<GemeindeSchluessel> {
-        GemeindeSchluessel::new(self, u16::MIN)..=GemeindeSchluessel::new(self, u16::MAX)
+/// Creates a range of keys to iterate over all Kreise in a Regierungsbezirk
+impl IntoRangeKey<KreisSchluessel> for RegierungsbezirkSchluessel {
+    fn into_range_key(self) -> RangeInclusive<KreisSchluessel> {
+        KreisSchluessel::new(self, u8::MIN)..=KreisSchluessel::new(self, u8::MAX)
     }
 }
 
+/// Creates a range of keys to iterate over all Gemeindeverbaende in a
+/// Regierungsbezirk
+impl IntoRangeKey<GemeindeverbandSchluessel> for RegierungsbezirkSchluessel {
+    fn into_range_key(self) -> RangeInclusive<GemeindeverbandSchluessel> {
+        GemeindeverbandSchluessel::new(KreisSchluessel::new(self, u8::MIN), u16::MIN)
+            ..=GemeindeverbandSchluessel::new(KreisSchluessel::new(self, u8::MAX), u16::MAX)
+    }
+}
+
+/// Creates a range of keys to iterate over all Gemeinden in a Regierungsbezirk
 impl IntoRangeKey<GemeindeSchluessel> for RegierungsbezirkSchluessel {
     fn into_range_key(self) -> RangeInclusive<GemeindeSchluessel> {
-        GemeindeSchluessel::new(KreisSchluessel::new(self, u8::MIN), u16::MIN)
-            ..=GemeindeSchluessel::new(KreisSchluessel::new(self, u8::MAX), u16::MAX)
-    }
-}
-
-impl IntoRangeKey<GemeindeSchluessel> for LandSchluessel {
-    fn into_range_key(self) -> RangeInclusive<GemeindeSchluessel> {
         GemeindeSchluessel::new(
-            KreisSchluessel::new(RegierungsbezirkSchluessel::new(self, u8::MIN), u8::MIN),
+            GemeindeverbandSchluessel::new(KreisSchluessel::new(self, u8::MIN), u16::MIN),
             u16::MIN,
         )
             ..=GemeindeSchluessel::new(
-                KreisSchluessel::new(RegierungsbezirkSchluessel::new(self, u8::MAX), u8::MAX),
+                GemeindeverbandSchluessel::new(KreisSchluessel::new(self, u8::MAX), u16::MAX),
                 u16::MAX,
             )
+    }
+}
+
+/// Creates a range of keys to iterate over all Gemeindeverbaende in a Kreis
+impl IntoRangeKey<GemeindeverbandSchluessel> for KreisSchluessel {
+    fn into_range_key(self) -> RangeInclusive<GemeindeverbandSchluessel> {
+        GemeindeverbandSchluessel::new(self, u16::MIN)
+            ..=GemeindeverbandSchluessel::new(self, u16::MAX)
+    }
+}
+
+/// Creates a range of keys to iterate over all Gemeindeverbaende in a Kreis
+impl IntoRangeKey<GemeindeSchluessel> for KreisSchluessel {
+    fn into_range_key(self) -> RangeInclusive<GemeindeSchluessel> {
+        GemeindeSchluessel::new(GemeindeverbandSchluessel::new(self, u16::MIN), u16::MIN)
+            ..=GemeindeSchluessel::new(GemeindeverbandSchluessel::new(self, u16::MAX), u16::MAX)
+    }
+}
+
+/// Creates a range of keys to iterate over all Gemeindeverbaende in a Kreis
+impl IntoRangeKey<GemeindeSchluessel> for GemeindeverbandSchluessel {
+    fn into_range_key(self) -> RangeInclusive<GemeindeSchluessel> {
+        GemeindeSchluessel::new(self, u16::MIN)..=GemeindeSchluessel::new(self, u16::MAX)
     }
 }
 
@@ -223,6 +290,14 @@ impl Lookup for KreisDaten {
 
     fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self> {
         db.kreise.get(&key)
+    }
+}
+
+impl Lookup for GemeindeverbandDaten {
+    type Key = GemeindeverbandSchluessel;
+
+    fn lookup<'a>(key: Self::Key, db: &'a Database) -> Option<&'a Self> {
+        db.gemeindeverbaende.get(&key)
     }
 }
 
@@ -273,6 +348,14 @@ impl<'a> IterAll<'a> for KreisDaten {
     }
 }
 
+impl<'a> IterAll<'a> for GemeindeverbandDaten {
+    type Iter = btree_map::Values<'a, GemeindeverbandSchluessel, GemeindeverbandDaten>;
+
+    fn iter_all(db: &'a Database) -> Self::Iter {
+        db.gemeindeverbaende.values()
+    }
+}
+
 impl<'a> IterAll<'a> for GemeindeDaten {
     type Iter = btree_map::Values<'a, GemeindeSchluessel, GemeindeDaten>;
 
@@ -313,6 +396,15 @@ impl<'a> IterChildrenOf<'a> for KreisDaten {
 
     fn iter_children_of<K: IntoRangeKey<Self::Key>>(db: &'a Database, key: K) -> Self::Iter {
         db.kreise.range(key.into_range_key())
+    }
+}
+
+impl<'a> IterChildrenOf<'a> for GemeindeverbandDaten {
+    type Iter = btree_map::Range<'a, Self::Key, Self>;
+    type Key = GemeindeverbandSchluessel;
+
+    fn iter_children_of<K: IntoRangeKey<Self::Key>>(db: &'a Database, key: K) -> Self::Iter {
+        db.gemeindeverbaende.range(key.into_range_key())
     }
 }
 
@@ -374,7 +466,7 @@ mod tests {
     fn get_land_from_gemeindeschluessel() {
         let db = load_testset();
         let land: &LandDaten = db
-            .get("10042111".parse::<GemeindeSchluessel>().unwrap())
+            .get("100420111111".parse::<GemeindeSchluessel>().unwrap())
             .unwrap();
         assert_eq!(land.name, "Saarland");
     }
@@ -383,10 +475,19 @@ mod tests {
     fn get_gemeinde() {
         let db = load_testset();
         let gemeinde: &GemeindeDaten = db
-            .get("10042111".parse::<GemeindeSchluessel>().unwrap())
+            .get("100420111111".parse::<GemeindeSchluessel>().unwrap())
             .unwrap();
         assert_eq!(gemeinde.name, "Beckingen");
     }
+
+    /*#[test]
+    fn get_gemeinde_from_regional_schluessel() {
+        let db = load_testset();
+        let gemeinde: &GemeindeDaten = db
+            .get("10042111".parse::<RegionalSchluessel>().unwrap())
+            .unwrap();
+        assert_eq!(gemeinde.name, "Beckingen");
+    }*/
 
     #[test]
     fn iter_all_laender() {
@@ -425,7 +526,6 @@ mod tests {
         let db = load_testset();
         let gemeinden = db
             .children::<_, GemeindeDaten>(KreisSchluessel::new_land(LandSchluessel::new(10), 41))
-            .map(|(_, v)| v)
             .collect::<Vec<_>>();
 
         assert_eq!(gemeinden.len(), 2);

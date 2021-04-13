@@ -11,8 +11,8 @@ use super::{land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RegionSchluessel {
-    regierungsbezirk: RegierungsbezirkSchluessel,
-    region: u8,
+    pub regierungsbezirk: RegierungsbezirkSchluessel,
+    pub region: u8,
 }
 
 impl RegionSchluessel {

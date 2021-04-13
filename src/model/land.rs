@@ -9,7 +9,7 @@ use crate::error::ParseKeyError;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LandSchluessel {
-    land: u8,
+    pub land: u8,
 }
 
 impl LandSchluessel {

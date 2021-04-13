@@ -12,8 +12,8 @@ use crate::{
     error::Error,
     model::{
         datensatz::Datensatz,
-        gemeinde::GemeindeDaten,
-        gemeindeverband::GemeindeverbandDaten,
+        gemeinde::{GemeindeDaten, RegionalSchluessel},
+        gemeindeverband::{GemeindeverbandDaten, GemeindeverbandSchluessel},
         kreis::KreisDaten,
         land::LandDaten,
         regierungsbezirk::RegierungsbezirkDaten,
@@ -244,6 +244,8 @@ impl<R: BufRead> Parser<R> {
                 let gemeindeverband = fields.parse_next(4)?;
                 tracing::debug!(gemeindeverband = ?gemeindeverband);
 
+                let schluessel = GemeindeverbandSchluessel::new(kreis_schluessel, gemeindeverband);
+
                 let name = fields.next(50).trim().to_owned();
                 tracing::debug!(name = ?name);
 
@@ -255,8 +257,7 @@ impl<R: BufRead> Parser<R> {
 
                 Datensatz::Gemeindeverband(GemeindeverbandDaten {
                     gebietsstand,
-                    kreis_schluessel,
-                    gemeindeverband,
+                    schluessel,
                     name,
                     textkennzeichen,
                     sitz_verwaltung,
@@ -268,11 +269,13 @@ impl<R: BufRead> Parser<R> {
                 let gebietsstand = parse_date(fields.next(8))?;
                 tracing::debug!(gebietsstand = ?gebietsstand);
 
-                let schluessel = fields.parse_next(8)?;
-                tracing::debug!(schluessel = ?schluessel);
+                let regional_schluessel = fields.parse_next::<RegionalSchluessel>(8)?;
+                tracing::debug!(regional_schluessel = ?regional_schluessel);
 
                 let gemeindeverband = fields.parse_next(4)?;
                 tracing::debug!(gemeindeverband = ?gemeindeverband);
+
+                let schluessel = regional_schluessel.to_gemeinde_schluessel(gemeindeverband);
 
                 let name = fields.next(50).trim().to_owned();
                 tracing::debug!(name = ?name);
@@ -320,7 +323,6 @@ impl<R: BufRead> Parser<R> {
                 Datensatz::Gemeinde(GemeindeDaten {
                     gebietsstand,
                     schluessel,
-                    gemeindeverband,
                     name,
                     textkennzeichen,
                     area,
@@ -360,7 +362,7 @@ mod tests {
     use crate::model::{
         datensatz::Datensatz,
         gemeinde::{Bundestagswahlkreise, GemeindeSchluessel, GemeindeTextkennzeichen},
-        gemeindeverband::GemeindeverbandTextkennzeichen,
+        gemeindeverband::{GemeindeverbandSchluessel, GemeindeverbandTextkennzeichen},
         kreis::{KreisSchluessel, KreisTextkennzeichen},
         land::LandSchluessel,
         regierungsbezirk::RegierungsbezirkSchluessel,
@@ -468,10 +470,12 @@ mod tests {
                     NaiveDate::from_ymd(2021, 04, 30)
                 );
                 assert_eq!(
-                    gemeindeverband.kreis_schluessel,
-                    KreisSchluessel::new_land(LandSchluessel::new(10), 41)
+                    gemeindeverband.schluessel,
+                    GemeindeverbandSchluessel::new(
+                        KreisSchluessel::new_land(LandSchluessel::new(10), 41),
+                        100
+                    )
                 );
-                assert_eq!(gemeindeverband.gemeindeverband, 100);
                 assert_eq!(gemeindeverband.name, "Saarbrücken, Landeshauptstadt");
                 assert_eq!(gemeindeverband.sitz_verwaltung, None);
                 assert_eq!(
@@ -494,11 +498,13 @@ mod tests {
                 assert_eq!(
                     gemeinde.schluessel,
                     GemeindeSchluessel::new(
-                        KreisSchluessel::new_land(LandSchluessel::new(10), 41),
+                        GemeindeverbandSchluessel::new(
+                            KreisSchluessel::new_land(LandSchluessel::new(10), 41),
+                            100,
+                        ),
                         100
                     )
                 );
-                assert_eq!(gemeinde.gemeindeverband, 100);
                 assert_eq!(gemeinde.name, "Saarbrücken, Landeshauptstadt");
                 assert_eq!(gemeinde.textkennzeichen, GemeindeTextkennzeichen::Stadt);
                 assert_eq!(gemeinde.area, 16752);
