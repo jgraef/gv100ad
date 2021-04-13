@@ -82,8 +82,8 @@ hierarchical key containing:
 
 E.g. a Landschluessel (e.g. `10` for Saarland) only identifies the state. A
 Kreisschluessel contains keys to identify the Land and Regierungsbezirk the
-Kreis is in, and the key for the Kreis itself. E.g. `10RKK` identifies the
-Gemeinde ? in Regierungsbezirk ? in the state of Saarland.
+Kreis is in, and the key for the Kreis itself. E.g. `10041` identifies the
+Kreis Merzig-Wadern (42) in Regierungsbezirk 0 in the state of Saarland (10).
 
 Regionen and Gemeindeverbaende are identified somewhat idenpendently from
 the Regionalschluessel.

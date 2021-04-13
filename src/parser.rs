@@ -12,7 +12,7 @@ use crate::{
     error::Error,
     model::{
         datensatz::Datensatz,
-        gemeinde::{Bundestagswahlkreise, GemeindeDaten, Gerichtbarkeit},
+        gemeinde::GemeindeDaten,
         gemeindeverband::GemeindeverbandDaten,
         kreis::KreisDaten,
         land::LandDaten,
@@ -358,7 +358,7 @@ mod tests {
     use std::io::Cursor;
 
     use crate::model::{
-        datensatz::Datensatz, gemeinde::{GemeindeSchluessel, GemeindeTextkennzeichen}, kreis::{KreisSchluessel, KreisTextkennzeichen},
+        datensatz::Datensatz, gemeinde::{Bundestagswahlkreise, GemeindeSchluessel, GemeindeTextkennzeichen}, kreis::{KreisSchluessel, KreisTextkennzeichen},
         land::LandSchluessel, regierungsbezirk::RegierungsbezirkSchluessel, region::RegionSchluessel, gemeindeverband::GemeindeverbandTextkennzeichen,
     };
 
