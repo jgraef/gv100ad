@@ -8,6 +8,8 @@ license = "MIT"
 documentation = "https://docs.rs/gv100ad"
 homepage = "https://github.com/jgraef/gv100ad"
 repository = "https://github.com/jgraef/gv100ad"
+readme = "README.md"
+categories = ["parsing"]
 
 [dependencies]
 chrono = "0.4"
