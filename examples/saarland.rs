@@ -8,7 +8,8 @@ use gv100ad::{
 };
 
 fn main() {
-    // Open the database. Refer to the `README.md` file for the source of the datasets.
+    // Open the database. Refer to the `README.md` file for the source of the
+    // datasets.
     let db = Database::from_path("GV100AD3004/GV100AD_300421.txt").unwrap();
 
     // Parse a key for the state of Saarland
@@ -32,7 +33,8 @@ fn main() {
     }
 
     // Get the sum of the population of all municipalities in Saarland
-    let total_population: u64 = db.children::<_, GemeindeDaten>(schluessel)
+    let total_population: u64 = db
+        .children::<_, GemeindeDaten>(schluessel)
         .map(|gemeinde| gemeinde.population_total)
         .sum();
     println!("Total population of {}: {}", land.name, total_population);

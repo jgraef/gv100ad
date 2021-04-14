@@ -348,8 +348,6 @@ impl Lookup<GemeindeSchluessel> for KreisDaten {
     }
 }
 
-
-
 impl Lookup<GemeindeverbandSchluessel> for GemeindeverbandDaten {
     fn lookup<'a>(key: GemeindeverbandSchluessel, db: &'a Database) -> Option<&'a Self> {
         db.gemeindeverbaende.get(&key)
