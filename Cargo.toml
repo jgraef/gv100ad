@@ -1,6 +1,6 @@
 [package]
 name = "gv100ad"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Janosch Gräf <janosch.graef@gmail.com>"]
 edition = "2018"
 description = "Parser to read GV100AD files from the Statistisches Bundesamt Germany"
